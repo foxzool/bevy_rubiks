@@ -1,0 +1,34 @@
+[package]
+name = "cubesim"
+description = "Rubik's Cube simulation and solving library."
+version = "0.0.7"
+authors = ["Vincent Wong <vincent@vwong.dev>"]
+edition = "2021"
+keywords = ["rubiks", "cube", "rubiks_cube"]
+license = "MIT"
+repository = "https://github.com/V-Wong/CubeSimRS/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cached = "0.40.0"
+glam = "0.22.0"
+derive_more = "0.99.16"
+lazy_static = "1.4.0"
+rustc-hash = "1.1.0"
+
+[dev-dependencies]
+criterion = "0.4.0"
+test-case = "2.2.2"
+
+[[bench]]
+name = "facelet_cube"
+harness = false
+
+[[bench]]
+name = "geometric_cube"
+harness = false
+
+[[bench]]
+name = "thistlethwaite"
+harness = false

@@ -79,7 +79,7 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextBundle::from_section(
                     "Bevy Rubik's Cube",
                     TextStyle {
-                        font: font.clone(),K
+                        font: font.clone(),
                         font_size: 80.0,
                         color: TEXT_COLOR,
                     },

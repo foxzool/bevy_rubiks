@@ -1,6 +1,5 @@
 use crate::GameState;
-use bevy::app::AppExit;
-use bevy::prelude::*;
+use bevy::{app::AppExit, prelude::*};
 
 pub struct MenuPlugin;
 
@@ -32,6 +31,7 @@ impl Plugin for MenuPlugin {
 }
 
 #[derive(Component)]
+#[allow(dead_code)]
 enum MenuButtonAction {
     Play,
     Settings,
@@ -249,7 +249,8 @@ fn settings_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-// Generic system that takes a component as a parameter, and will despawn all entities with that component
+// Generic system that takes a component as a parameter, and will despawn all entities with that
+// component
 fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
     for entity in &to_despawn {
         commands.entity(entity).despawn_recursive();

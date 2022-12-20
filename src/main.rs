@@ -1,10 +1,7 @@
 // disable console on windows for release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use bevy::prelude::*;
-use bevy::window::WindowId;
-use bevy::winit::WinitWindows;
-use bevy::DefaultPlugins;
+use bevy::{log::LogPlugin, prelude::*, window::WindowId, winit::WinitWindows, DefaultPlugins};
 use bevy_rubiks::RubiksPlugin;
 use std::io::Cursor;
 use winit::window::Icon;
@@ -13,16 +10,26 @@ fn main() {
     App::new()
         .insert_resource(Msaa { samples: 1 })
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 0.4)))
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                width: 1280.,
-                height: 720.,
-                title: "Bevy Rubik's cube".to_string(),
-                canvas: Some("#bevy".to_owned()),
-                ..Default::default()
-            },
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    window: WindowDescriptor {
+                        width: 1280.,
+                        height: 720.,
+                        title: "Bevy Rubik's cube".to_string(),
+                        canvas: Some("#bevy".to_owned()),
+                        ..Default::default()
+                    },
+                    ..default()
+                })
+                .set(LogPlugin {
+                    #[cfg(debug_assertions)]
+                    level: bevy::log::Level::DEBUG,
+                    #[cfg(debug_assertions)]
+                    filter: "wgpu=warn,bevy_ecs=info".to_string(),
+                    ..default()
+                }),
+        )
         .add_plugin(RubiksPlugin)
         .add_startup_system(set_window_icon)
         .run();

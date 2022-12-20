@@ -11,7 +11,7 @@ members = ["crates/cubesim"]
 
 [dependencies]
 bevy = { version = "0.9", default-features = false, features = ["bevy_asset", "bevy_winit", "render", "png", "x11"] }
-
+cubesim = { path = "crates/cubesim" }
 
 # keep the following in sync with Bevy's dependencies
 winit = { version = "0.27", default-features = false }

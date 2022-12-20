@@ -1,13 +1,14 @@
-use crate::menu::MenuPlugin;
-use crate::player::PlayerPlugin;
+use crate::{menu::MenuPlugin, player::PlayerPlugin, simulator::SimulatorPlugin};
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
 mod menu;
 mod player;
+mod simulator;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[allow(dead_code)]
 enum GameState {
     Menu,
     Playing,
@@ -20,6 +21,7 @@ impl Plugin for RubiksPlugin {
     fn build(&self, app: &mut App) {
         app.add_state(GameState::Menu)
             .add_plugin(PlayerPlugin)
+            .add_plugin(SimulatorPlugin)
             .add_plugin(MenuPlugin);
 
         #[cfg(debug_assertions)]

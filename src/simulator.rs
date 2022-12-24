@@ -7,7 +7,7 @@ pub struct SimulatorPlugin;
 
 impl Plugin for SimulatorPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CurrentCube>()
+        app.insert_resource(CurrentCube::new(3))
             .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(cube_setup));
     }
 }
@@ -19,26 +19,41 @@ const DOWN_COLOR: Color = Color::YELLOW;
 const LEFT_COLOR: Color = Color::ORANGE;
 const BACK_COLOR: Color = Color::BLUE;
 
-#[derive(Resource, Deref, DerefMut)]
-struct CurrentCube(GeoCube);
+#[derive(Resource)]
+struct CurrentCube {
+    geo_cube: GeoCube,
+    cube_size: usize,
+}
 
-impl Default for CurrentCube {
-    fn default() -> Self {
-        Self(GeoCube::new(3))
+impl CurrentCube {
+    fn new(cube_size: usize) -> Self {
+        let geo_cube = GeoCube::new(cube_size as CubeSize);
+        Self {
+            geo_cube,
+            cube_size,
+        }
+    }
+
+    fn state(&self) -> Vec<Face> {
+        self.geo_cube.state()
     }
 }
 
 fn cube_setup(
     mut commands: Commands,
-    mut cube: ResMut<CurrentCube>,
+    mut current_cube: ResMut<CurrentCube>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    cube.0 = GeoCube::new(3);
-    info!("{:?}", cube.state());
+    info!("{:?}", current_cube.state());
 
-    for faces in cube.state().chunks(9).collect::<Vec<&[Face]>>().iter() {
-        for (j, faces) in faces.chunks(3).enumerate() {
+    for faces in current_cube
+        .state()
+        .chunks(current_cube.cube_size * current_cube.cube_size)
+        .collect::<Vec<&[Face]>>()
+        .iter()
+    {
+        for (j, faces) in faces.chunks(current_cube.cube_size).enumerate() {
             for (k, face) in faces.iter().enumerate() {
                 let color = match face {
                     Face::U => UP_COLOR,

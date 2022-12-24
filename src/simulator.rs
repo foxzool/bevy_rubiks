@@ -7,7 +7,7 @@ pub struct SimulatorPlugin;
 
 impl Plugin for SimulatorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CurrentCube::new(3))
+        app.insert_resource(CurrentCube::new(4))
             .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(cube_setup));
     }
 }
@@ -18,6 +18,7 @@ const FRONT_COLOR: Color = Color::GREEN;
 const DOWN_COLOR: Color = Color::YELLOW;
 const LEFT_COLOR: Color = Color::ORANGE;
 const BACK_COLOR: Color = Color::BLUE;
+const PIECE_SIZE: f32 = 1.0;
 
 #[derive(Resource)]
 struct CurrentCube {
@@ -41,11 +42,15 @@ impl CurrentCube {
 
 fn cube_setup(
     mut commands: Commands,
-    mut current_cube: ResMut<CurrentCube>,
+    current_cube: Res<CurrentCube>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     info!("{:?}", current_cube.state());
+
+    let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
+
+    info!("border: {}", border);
 
     for faces in current_cube
         .state()
@@ -66,7 +71,8 @@ fn cube_setup(
                         unreachable!()
                     }
                 };
-                let mut transform = Transform::from_xyz(k as f32 - 1.0, 1.0, j as f32 - 1.0);
+                let mut transform =
+                    Transform::from_xyz(k as f32 - border, border, j as f32 - border);
                 match face {
                     Face::U => {}
                     Face::L => {
@@ -89,7 +95,7 @@ fn cube_setup(
 
                 commands
                     .spawn(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+                        mesh: meshes.add(Mesh::from(shape::Cube { size: PIECE_SIZE })),
                         material: materials.add(StandardMaterial {
                             base_color: Color::BLACK,
                             unlit: true,
@@ -100,7 +106,9 @@ fn cube_setup(
                     })
                     .with_children(|parent| {
                         parent.spawn(PbrBundle {
-                            mesh: meshes.add(Mesh::from(shape::Plane { size: 0.9 })),
+                            mesh: meshes.add(Mesh::from(shape::Plane {
+                                size: PIECE_SIZE * 0.9,
+                            })),
                             material: materials.add(StandardMaterial {
                                 base_color: color,
                                 unlit: true,

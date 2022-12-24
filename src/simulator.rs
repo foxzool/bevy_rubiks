@@ -1,7 +1,10 @@
 use crate::GameState;
 use bevy::prelude::*;
 use cubesim::{prelude::*, GeoCube};
-use std::f32::consts::{FRAC_PI_2, PI};
+use std::{
+    f32::consts::{FRAC_PI_2, PI},
+    ops::{Deref, DerefMut},
+};
 
 pub struct SimulatorPlugin;
 
@@ -34,9 +37,19 @@ impl CurrentCube {
             cube_size,
         }
     }
+}
 
-    fn state(&self) -> Vec<Face> {
-        self.geo_cube.state()
+impl Deref for CurrentCube {
+    type Target = GeoCube;
+
+    fn deref(&self) -> &Self::Target {
+        &self.geo_cube
+    }
+}
+
+impl DerefMut for CurrentCube {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.geo_cube
     }
 }
 

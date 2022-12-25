@@ -1,6 +1,6 @@
-use crate::simulator::CurrentCube;
+use crate::simulator::MoveQueue;
 use bevy::prelude::*;
-use cubesim::{Cube, Move, MoveVariant};
+use cubesim::{Move, MoveVariant};
 
 pub struct PlayerPlugin;
 
@@ -18,8 +18,52 @@ fn spawn_camera(mut commands: Commands) {
     });
 }
 
-fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, current_cube: ResMut<CurrentCube>) {
+fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: ResMut<MoveQueue>) {
     if keyboard_input.just_pressed(KeyCode::F) {
-        current_cube.apply_move(Move::F(MoveVariant::Standard));
+        if keyboard_input.pressed(KeyCode::LShift) {
+            move_queue.push_back(Move::F(MoveVariant::Inverse));
+        } else {
+            move_queue.push_back(Move::F(MoveVariant::Standard));
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::B) {
+        if keyboard_input.pressed(KeyCode::LShift) {
+            move_queue.push_back(Move::B(MoveVariant::Inverse));
+        } else {
+            move_queue.push_back(Move::B(MoveVariant::Standard));
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::L) {
+        if keyboard_input.pressed(KeyCode::LShift) {
+            move_queue.push_back(Move::L(MoveVariant::Inverse));
+        } else {
+            move_queue.push_back(Move::L(MoveVariant::Standard));
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::R) {
+        if keyboard_input.pressed(KeyCode::LShift) {
+            move_queue.push_back(Move::R(MoveVariant::Inverse));
+        } else {
+            move_queue.push_back(Move::R(MoveVariant::Standard));
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::U) {
+        if keyboard_input.pressed(KeyCode::LShift) {
+            move_queue.push_back(Move::U(MoveVariant::Inverse));
+        } else {
+            move_queue.push_back(Move::U(MoveVariant::Standard));
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::D) {
+        if keyboard_input.pressed(KeyCode::LShift) {
+            move_queue.push_back(Move::D(MoveVariant::Inverse));
+        } else {
+            move_queue.push_back(Move::D(MoveVariant::Standard));
+        }
     }
 }

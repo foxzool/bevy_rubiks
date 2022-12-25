@@ -17,6 +17,9 @@ cubesim = { path = "crates/cubesim" }
 winit = { version = "0.27", default-features = false }
 image = { version = "0.24", default-features = false }
 
+float_eq = "1.0.1"
+
+
 [profile.dev.package."*"]
 opt-level = 3
 

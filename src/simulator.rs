@@ -1,7 +1,9 @@
 use crate::GameState;
 use bevy::prelude::*;
 use cubesim::{prelude::*, GeoCube};
+use float_eq::float_eq;
 use std::{
+    collections::VecDeque,
     f32::consts::{FRAC_PI_2, PI},
     ops::{Deref, DerefMut},
 };
@@ -11,6 +13,9 @@ pub struct SimulatorPlugin;
 impl Plugin for SimulatorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CurrentCube::new(3))
+            .init_resource::<MoveQueue>()
+            .add_system(rotate_control)
+            .add_system(rotate_piece)
             .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(cube_setup));
     }
 }
@@ -22,6 +27,8 @@ const DOWN_COLOR: Color = Color::YELLOW;
 const LEFT_COLOR: Color = Color::ORANGE;
 const BACK_COLOR: Color = Color::BLUE;
 const PIECE_SIZE: f32 = 1.0;
+
+const ROTATE_SPEED: f32 = 1.0;
 
 #[derive(Resource)]
 pub struct CurrentCube {
@@ -52,6 +59,9 @@ impl DerefMut for CurrentCube {
         &mut self.geo_cube
     }
 }
+
+#[derive(Component)]
+struct Piece;
 
 fn cube_setup(
     mut commands: Commands,
@@ -139,6 +149,7 @@ fn cube_setup(
                         transform,
                         ..Default::default()
                     })
+                    .insert(Piece)
                     .with_children(|parent| {
                         parent.spawn(PbrBundle {
                             mesh: meshes.add(Mesh::from(shape::Plane {
@@ -155,5 +166,175 @@ fn cube_setup(
                     });
             }
         }
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct MoveQueue {
+    moves: VecDeque<Move>,
+    rotating: bool,
+}
+
+impl Deref for MoveQueue {
+    type Target = VecDeque<Move>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.moves
+    }
+}
+
+impl DerefMut for MoveQueue {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.moves
+    }
+}
+
+#[derive(Component)]
+struct Rotating {
+    axis: Vec3,
+    angle: f32,
+}
+
+fn rotate_control(
+    mut commands: Commands,
+    mut move_queue: ResMut<MoveQueue>,
+    current_cube: ResMut<CurrentCube>,
+    q_not_rotating: Query<(Entity, &GlobalTransform), (Without<Rotating>, With<Piece>)>,
+) {
+    if move_queue.rotating {
+        return;
+    }
+    if let Some(move_) = move_queue.pop_front() {
+        current_cube.apply_move(move_);
+        move_queue.rotating = true;
+        let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
+        match move_ {
+            Move::U(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().y, border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Y,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::L(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().x, -border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::X,
+                            angle: match v {
+                                MoveVariant::Standard => FRAC_PI_2,
+                                MoveVariant::Inverse => -FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::F(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().z, border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Z,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::R(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().x, border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::X,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::B(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().z, -border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Z,
+                            angle: match v {
+                                MoveVariant::Standard => FRAC_PI_2,
+                                MoveVariant::Inverse => -FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::D(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().y, -border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Y,
+                            angle: match v {
+                                MoveVariant::Standard => FRAC_PI_2,
+                                MoveVariant::Inverse => -FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Uw(_, _) => {}
+            Move::Lw(_, _) => {}
+            Move::Fw(_, _) => {}
+            Move::Rw(_, _) => {}
+            Move::Bw(_, _) => {}
+            Move::Dw(_, _) => {}
+            Move::X(_) => {}
+            Move::Y(_) => {}
+            Move::Z(_) => {}
+        }
+    }
+}
+
+fn rotate_piece(
+    mut commands: Commands,
+    mut move_queue: ResMut<MoveQueue>,
+    time: Res<Time>,
+    mut q_rotating: Query<(Entity, &mut Transform, &mut Rotating), With<Piece>>,
+) {
+    if q_rotating.is_empty() {
+        move_queue.rotating = false;
+        return;
+    }
+
+    for (entity, mut transform, mut rotating) in q_rotating.iter_mut() {
+        let mut rotate_angle = if rotating.angle > 0.0 {
+            ROTATE_SPEED * PI * time.delta_seconds()
+        } else {
+            -ROTATE_SPEED * PI * time.delta_seconds()
+        };
+
+        rotating.angle -= rotate_angle;
+
+        if rotate_angle > 0.0 && rotating.angle < 0.0 {
+            rotate_angle = rotating.angle + rotate_angle;
+            commands.entity(entity).remove::<Rotating>();
+        } else if rotate_angle < 0.0 && rotating.angle > 0.0 {
+            rotate_angle = rotating.angle + rotate_angle;
+            commands.entity(entity).remove::<Rotating>();
+        }
+
+        let rotation = Quat::from_axis_angle(rotating.axis, rotate_angle);
+        transform.rotate_around(Vec3::ZERO, rotation);
     }
 }

@@ -24,8 +24,7 @@ impl Plugin for RubiksPlugin {
 
         #[cfg(debug_assertions)]
         {
-            // use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
-            // app.add_plugin(FrameTimeDiagnosticsPlugin::default())
+            // app.add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default());
             //     .add_plugin(LogDiagnosticsPlugin::default());
         }
     }

@@ -10,7 +10,7 @@ pub struct SimulatorPlugin;
 
 impl Plugin for SimulatorPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(CurrentCube::new(4))
+        app.insert_resource(CurrentCube::new(3))
             .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(cube_setup));
     }
 }
@@ -24,13 +24,13 @@ const BACK_COLOR: Color = Color::BLUE;
 const PIECE_SIZE: f32 = 1.0;
 
 #[derive(Resource)]
-struct CurrentCube {
+pub struct CurrentCube {
     geo_cube: GeoCube,
     cube_size: usize,
 }
 
 impl CurrentCube {
-    fn new(cube_size: usize) -> Self {
+    pub fn new(cube_size: usize) -> Self {
         let geo_cube = GeoCube::new(cube_size as CubeSize);
         Self {
             geo_cube,
@@ -55,22 +55,38 @@ impl DerefMut for CurrentCube {
 
 fn cube_setup(
     mut commands: Commands,
-    current_cube: Res<CurrentCube>,
+    current_cube: ResMut<CurrentCube>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    info!("{:?}", current_cube.state());
+    // current_cube.geo_cube = current_cube.apply_moves(&[
+    //     Move::L(MoveVariant::Standard),
+    //     Move::R(MoveVariant::Standard),
+    //     Move::F(MoveVariant::Standard),
+    //     // Move::B(MoveVariant::Standard),
+    //     // Move::U(MoveVariant::Standard),
+    // ]);
+    info!("state {:?}", current_cube.state());
 
     let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
 
-    info!("border: {}", border);
-
-    for faces in current_cube
+    for (i, faces) in current_cube
         .state()
         .chunks(current_cube.cube_size * current_cube.cube_size)
         .collect::<Vec<&[Face]>>()
         .iter()
+        .enumerate()
     {
+        let saw_face = match i {
+            0 => Face::U,
+            1 => Face::R,
+            2 => Face::F,
+            3 => Face::D,
+            4 => Face::L,
+            5 => Face::B,
+            _ => panic!("invalid index"),
+        };
+
         for (j, faces) in faces.chunks(current_cube.cube_size).enumerate() {
             for (k, face) in faces.iter().enumerate() {
                 let color = match face {
@@ -86,21 +102,27 @@ fn cube_setup(
                 };
                 let mut transform =
                     Transform::from_xyz(k as f32 - border, border, j as f32 - border);
-                match face {
+                match saw_face {
                     Face::U => {}
                     Face::L => {
                         transform.rotate_around(Vec3::ZERO, Quat::from_rotation_z(FRAC_PI_2));
+                        transform.rotate_around(Vec3::ZERO, Quat::from_rotation_x(FRAC_PI_2));
                     }
                     Face::F => {
                         transform.rotate_around(Vec3::ZERO, Quat::from_rotation_x(FRAC_PI_2));
                     }
                     Face::R => {
                         transform.rotate_around(Vec3::ZERO, Quat::from_rotation_z(-FRAC_PI_2));
+                        transform.rotate_around(Vec3::ZERO, Quat::from_rotation_x(FRAC_PI_2));
                     }
                     Face::B => {
                         transform.rotate_around(Vec3::ZERO, Quat::from_rotation_x(-FRAC_PI_2));
+                        transform.rotate_around(Vec3::ZERO, Quat::from_rotation_z(PI));
                     }
-                    Face::D => transform.rotate_around(Vec3::ZERO, Quat::from_rotation_z(PI)),
+                    Face::D => {
+                        transform.rotate_around(Vec3::ZERO, Quat::from_rotation_z(PI));
+                        transform.rotate_around(Vec3::ZERO, Quat::from_rotation_y(PI));
+                    }
                     Face::X => {
                         unreachable!()
                     }

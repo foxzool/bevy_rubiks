@@ -26,7 +26,7 @@ fn main() {
                     #[cfg(debug_assertions)]
                     level: bevy::log::Level::DEBUG,
                     #[cfg(debug_assertions)]
-                    filter: "wgpu=warn,bevy_ecs=info".to_string(),
+                    filter: "wgpu=warn,bevy_ecs=info,naga=warn".to_string(),
                     ..default()
                 }),
         )

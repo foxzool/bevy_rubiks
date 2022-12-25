@@ -1,6 +1,4 @@
 use crate::{menu::MenuPlugin, player::PlayerPlugin, simulator::SimulatorPlugin};
-#[cfg(debug_assertions)]
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 
 mod menu;
@@ -26,8 +24,9 @@ impl Plugin for RubiksPlugin {
 
         #[cfg(debug_assertions)]
         {
-            app.add_plugin(FrameTimeDiagnosticsPlugin::default())
-                .add_plugin(LogDiagnosticsPlugin::default());
+            // use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+            // app.add_plugin(FrameTimeDiagnosticsPlugin::default())
+            //     .add_plugin(LogDiagnosticsPlugin::default());
         }
     }
 }

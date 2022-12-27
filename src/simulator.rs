@@ -16,11 +16,13 @@ impl Plugin for SimulatorPlugin {
             .init_resource::<MoveQueue>()
             .add_system(rotate_control)
             .add_system(rotate_piece)
+            .add_system(button_system)
             .add_system_set(
                 SystemSet::on_enter(GameState::Playing)
                     .with_system(cube_setup)
                     .with_system(game_ui),
-            );
+            )
+            .add_system_set(SystemSet::on_exit(GameState::Playing).with_system(clean_up));
     }
 }
 
@@ -339,12 +341,12 @@ fn rotate_piece(
 #[derive(Component)]
 struct GameUiRoot;
 
-fn game_ui(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut move_queue: ResMut<MoveQueue>,
-) {
+#[derive(Component)]
+enum PlayButtonActions {
+    BackToMenu,
+}
+
+fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     // root node
     commands
         .spawn(NodeBundle {
@@ -381,21 +383,53 @@ fn game_ui(
                         })
                         .with_children(|parent| {
                             // text
-                            parent.spawn(
-                                TextBundle::from_section(
-                                    "Back to menu",
-                                    TextStyle {
-                                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                        font_size: 30.0,
-                                        color: Color::WHITE,
-                                    },
+                            parent
+                                .spawn(
+                                    TextBundle::from_section(
+                                        "Back to menu",
+                                        TextStyle {
+                                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                            font_size: 30.0,
+                                            color: Color::WHITE,
+                                        },
+                                    )
+                                    .with_style(Style {
+                                        margin: UiRect::all(Val::Px(5.0)),
+                                        ..default()
+                                    }),
                                 )
-                                .with_style(Style {
-                                    margin: UiRect::all(Val::Px(5.0)),
-                                    ..default()
-                                }),
-                            );
+                                .insert(PlayButtonActions::BackToMenu)
+                                .insert(Interaction::None);
                         });
                 }); // root node
         });
+}
+
+fn clean_up(
+    mut commands: Commands,
+    q_ui: Query<Entity, With<GameUiRoot>>,
+    q_piece: Query<Entity, With<Piece>>,
+) {
+    for entity in q_ui.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+
+    for entity in q_piece.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+fn button_system(
+    mut interaction_query: Query<(&Interaction,), (Changed<Interaction>, With<PlayButtonActions>)>,
+    mut game_state: ResMut<State<GameState>>,
+) {
+    for (interaction,) in &mut interaction_query {
+        if *interaction == Interaction::Clicked {
+            match PlayButtonActions::BackToMenu {
+                PlayButtonActions::BackToMenu => {
+                    game_state.set(GameState::Menu).unwrap();
+                }
+            }
+        }
+    }
 }

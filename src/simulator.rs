@@ -16,7 +16,11 @@ impl Plugin for SimulatorPlugin {
             .init_resource::<MoveQueue>()
             .add_system(rotate_control)
             .add_system(rotate_piece)
-            .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(cube_setup));
+            .add_system_set(
+                SystemSet::on_enter(GameState::Playing)
+                    .with_system(cube_setup)
+                    .with_system(game_ui),
+            );
     }
 }
 
@@ -65,17 +69,10 @@ struct Piece;
 
 fn cube_setup(
     mut commands: Commands,
-    current_cube: ResMut<CurrentCube>,
+    current_cube: Res<CurrentCube>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // current_cube.geo_cube = current_cube.apply_moves(&[
-    //     Move::L(MoveVariant::Standard),
-    //     Move::R(MoveVariant::Standard),
-    //     Move::F(MoveVariant::Standard),
-    //     // Move::B(MoveVariant::Standard),
-    //     // Move::U(MoveVariant::Standard),
-    // ]);
     info!("state {:?}", current_cube.state());
 
     let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
@@ -337,4 +334,68 @@ fn rotate_piece(
         let rotation = Quat::from_axis_angle(rotating.axis, rotate_angle);
         transform.rotate_around(Vec3::ZERO, rotation);
     }
+}
+
+#[derive(Component)]
+struct GameUiRoot;
+
+fn game_ui(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut move_queue: ResMut<MoveQueue>,
+) {
+    // root node
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                justify_content: JustifyContent::SpaceBetween,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(GameUiRoot)
+        .with_children(|parent| {
+            // left vertical fill (border)
+            parent
+                .spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(Val::Px(200.0), Val::Percent(100.0)),
+                        border: UiRect::all(Val::Px(2.0)),
+                        ..default()
+                    },
+                    background_color: Color::rgb(0.65, 0.65, 0.65).into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    // left vertical fill (content)
+                    parent
+                        .spawn(NodeBundle {
+                            style: Style {
+                                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                                ..default()
+                            },
+                            background_color: Color::rgb(0.15, 0.15, 0.15).into(),
+                            ..default()
+                        })
+                        .with_children(|parent| {
+                            // text
+                            parent.spawn(
+                                TextBundle::from_section(
+                                    "Back to menu",
+                                    TextStyle {
+                                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                        font_size: 30.0,
+                                        color: Color::WHITE,
+                                    },
+                                )
+                                .with_style(Style {
+                                    margin: UiRect::all(Val::Px(5.0)),
+                                    ..default()
+                                }),
+                            );
+                        });
+                }); // root node
+        });
 }

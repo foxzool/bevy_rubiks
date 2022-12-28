@@ -363,7 +363,7 @@ impl Display for MoveVariant {
             MoveVariant::Double => "2",
             MoveVariant::Inverse => "'",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

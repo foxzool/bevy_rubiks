@@ -196,11 +196,13 @@ struct Rotating {
     angle: f32,
 }
 
+type NotRotatingPiece = (Without<Rotating>, With<Piece>);
+
 fn rotate_control(
     mut commands: Commands,
     mut move_queue: ResMut<MoveQueue>,
     mut current_cube: ResMut<CurrentCube>,
-    q_not_rotating: Query<(Entity, &GlobalTransform), (Without<Rotating>, With<Piece>)>,
+    q_not_rotating: Query<(Entity, &GlobalTransform), NotRotatingPiece>,
 ) {
     if move_queue.rotating {
         return;
@@ -502,11 +504,10 @@ fn rotate_piece(
 
         rotating.angle -= rotate_angle;
 
-        if rotate_angle > 0.0 && rotating.angle < 0.0 {
-            rotate_angle = rotating.angle + rotate_angle;
-            commands.entity(entity).remove::<Rotating>();
-        } else if rotate_angle < 0.0 && rotating.angle > 0.0 {
-            rotate_angle = rotating.angle + rotate_angle;
+        if (rotate_angle > 0.0 && rotating.angle < 0.0)
+            || (rotate_angle < 0.0 && rotating.angle > 0.0)
+        {
+            rotate_angle += rotating.angle;
             commands.entity(entity).remove::<Rotating>();
         }
 

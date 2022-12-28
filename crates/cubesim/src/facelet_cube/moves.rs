@@ -3,10 +3,10 @@ use lazy_static::lazy_static;
 use rustc_hash::FxHashMap;
 use std::sync::Mutex;
 
-use crate::generic_cube::Move::*;
-use crate::generic_cube::MoveVariant::*;
-use crate::generic_cube::{Cube, CubeSize, Move};
-use crate::geometric_cube::{GeoCube, Sticker};
+use crate::{
+    generic_cube::{Cube, CubeSize, Move, Move::*, MoveVariant::*},
+    geometric_cube::{GeoCube, Sticker},
+};
 use glam::IVec3;
 
 pub struct FaceletMove(pub Vec<(u16, u16)>);
@@ -43,12 +43,7 @@ fn convert_move(size: CubeSize, mv: Move) -> FaceletMove {
             .apply_move(mv)
             .stickers()
             .iter()
-            .map(|s| {
-                (
-                    index_map[(&s.initial)] as u16,
-                    index_map[(&s.current)] as u16,
-                )
-            })
+            .map(|s| (index_map[(&s.initial)], index_map[(&s.current)]))
             .filter(|x| x.0 != x.1)
             .collect(),
     )

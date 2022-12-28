@@ -1,11 +1,8 @@
 use lazy_static::lazy_static;
 
-use crate::generic_cube::Move::*;
-use crate::generic_cube::MoveVariant::*;
-use crate::generic_cube::{Cube, CubeSize, Face, Move};
+use crate::generic_cube::{Cube, CubeSize, Face, Move, Move::*, MoveVariant::*};
 
-use super::moves::GeometricMove;
-use super::sticker::Sticker;
+use super::{moves::GeometricMove, sticker::Sticker};
 
 lazy_static! {
     static ref FACE_ROTATING_MOVES: Vec<Vec<Move>> = vec![
@@ -49,7 +46,7 @@ impl Cube for GeoCube {
         let mut faces = Vec::new();
 
         for mvs in FACE_ROTATING_MOVES.iter() {
-            let rotated_cube = self.apply_moves(&mvs);
+            let rotated_cube = self.apply_moves(mvs);
             let top_layer_stickers = rotated_cube.top_layer_stickers();
 
             for (sticker, _) in top_layer_stickers {
@@ -118,7 +115,7 @@ impl GeoCube {
         let cube = Self { size, stickers };
 
         for (idx, mvs) in (FACE_ROTATING_MOVES).iter().enumerate() {
-            let rotated_cube = cube.apply_moves(&mvs);
+            let rotated_cube = cube.apply_moves(mvs);
             let top_layer_stickers = rotated_cube.top_layer_stickers();
 
             for (sticker, _) in top_layer_stickers.iter() {
@@ -132,8 +129,8 @@ impl GeoCube {
     fn top_layer_stickers(&self) -> Vec<(Sticker, CubeSize)> {
         let mut top_layer_stickers = self
             .stickers
-            .to_owned()
-            .into_iter()
+            .iter()
+            .copied()
             .filter(|(s, _)| matches!(s.current_face(), Face::U))
             .collect::<Vec<_>>();
 
@@ -154,7 +151,7 @@ impl GeoCube {
 impl std::fmt::Display for GeoCube {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         for (v, _) in &self.stickers {
-            writeln!(f, "{}", v)?;
+            writeln!(f, "{v}")?;
         }
         Ok(())
     }

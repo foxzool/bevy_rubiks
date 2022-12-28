@@ -258,10 +258,7 @@ fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands
 }
 
 fn menu_action(
-    interaction_query: Query<
-        (&Interaction, &MenuButtonAction),
-        (Changed<Interaction>, With<Button>),
-    >,
+    interaction_query: Query<(&Interaction, &MenuButtonAction), ChangedButton>,
     mut app_exit_events: EventWriter<AppExit>,
     mut menu_state: ResMut<State<MenuState>>,
     mut game_state: ResMut<State<GameState>>,
@@ -287,11 +284,13 @@ fn menu_action(
     }
 }
 
+type ChangedButton = (Changed<Interaction>, With<Button>);
+
 // This system handles changing all buttons color based on mouse interaction
 fn button_system(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, Option<&SelectedOption>),
-        (Changed<Interaction>, With<Button>),
+        ChangedButton,
     >,
 ) {
     for (interaction, mut color, selected) in &mut interaction_query {

@@ -1,6 +1,6 @@
 use crate::GameState;
 use bevy::prelude::*;
-use cubesim::{prelude::*, GeoCube};
+use cubesim::{prelude::*, random_scramble, GeoCube};
 use float_eq::float_eq;
 use std::{
     collections::VecDeque,
@@ -292,15 +292,168 @@ fn rotate_control(
                     }
                 }
             }
-            Move::Uw(_, _) => {}
-            Move::Lw(_, _) => {}
-            Move::Fw(_, _) => {}
-            Move::Rw(_, _) => {}
-            Move::Bw(_, _) => {}
-            Move::Dw(_, _) => {}
-            Move::X(_) => {}
-            Move::Y(_) => {}
-            Move::Z(_) => {}
+            Move::Uw(slice, v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().y, border, abs <= 0.001)
+                        && float_eq!(
+                            transform.translation().x,
+                            (slice as f32 - 1.5) * PIECE_SIZE,
+                            abs <= 0.001
+                        )
+                    {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Y,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Lw(slice, v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().x, -border, abs <= 0.001)
+                        && float_eq!(
+                            transform.translation().z,
+                            (slice as f32 - 1.5) * PIECE_SIZE,
+                            abs <= 0.001
+                        )
+                    {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::X,
+                            angle: match v {
+                                MoveVariant::Standard => FRAC_PI_2,
+                                MoveVariant::Inverse => -FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Fw(slice, v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().z, border, abs <= 0.001)
+                        && float_eq!(
+                            transform.translation().x,
+                            (slice as f32 - 1.5) * PIECE_SIZE,
+                            abs <= 0.001
+                        )
+                    {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Z,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Rw(slice, v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().x, border, abs <= 0.001)
+                        && float_eq!(
+                            transform.translation().z,
+                            (slice as f32 - 1.5) * PIECE_SIZE,
+                            abs <= 0.001
+                        )
+                    {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::X,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Bw(slice, v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().z, -border, abs <= 0.001)
+                        && float_eq!(
+                            transform.translation().x,
+                            (slice as f32 - 1.5) * PIECE_SIZE,
+                            abs <= 0.001
+                        )
+                    {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Z,
+                            angle: match v {
+                                MoveVariant::Standard => FRAC_PI_2,
+                                MoveVariant::Inverse => -FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Dw(slice, v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().y, -border, abs <= 0.001)
+                        && float_eq!(
+                            transform.translation().z,
+                            (slice as f32 - 1.5) * PIECE_SIZE,
+                            abs <= 0.001
+                        )
+                    {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Y,
+                            angle: match v {
+                                MoveVariant::Standard => FRAC_PI_2,
+                                MoveVariant::Inverse => -FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::X(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().y, border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Y,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Y(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().x, border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::X,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
+            Move::Z(v) => {
+                for (entity, transform) in q_not_rotating.iter() {
+                    if float_eq!(transform.translation().z, border, abs <= 0.001) {
+                        commands.entity(entity).insert(Rotating {
+                            axis: Vec3::Z,
+                            angle: match v {
+                                MoveVariant::Standard => -FRAC_PI_2,
+                                MoveVariant::Inverse => FRAC_PI_2,
+                                MoveVariant::Double => PI,
+                            },
+                        });
+                    }
+                }
+            }
         }
     }
 }
@@ -344,9 +497,12 @@ struct GameUiRoot;
 #[derive(Component)]
 enum PlayButtonActions {
     BackToMenu,
+    CubeScramble,
 }
 
 fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+
     // root node
     commands
         .spawn(NodeBundle {
@@ -376,6 +532,8 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .spawn(NodeBundle {
                             style: Style {
                                 size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                                flex_direction: FlexDirection::Column,
+                                align_self: AlignSelf::Center,
                                 ..default()
                             },
                             background_color: Color::rgb(0.15, 0.15, 0.15).into(),
@@ -388,7 +546,7 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     TextBundle::from_section(
                                         "Back to menu",
                                         TextStyle {
-                                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                            font: font.clone(),
                                             font_size: 30.0,
                                             color: Color::WHITE,
                                         },
@@ -399,6 +557,25 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     }),
                                 )
                                 .insert(PlayButtonActions::BackToMenu)
+                                .insert(Interaction::None);
+
+                            // text
+                            parent
+                                .spawn(
+                                    TextBundle::from_section(
+                                        "Cube Scramble",
+                                        TextStyle {
+                                            font,
+                                            font_size: 30.0,
+                                            color: Color::WHITE,
+                                        },
+                                    )
+                                    .with_style(Style {
+                                        margin: UiRect::all(Val::Px(5.0)),
+                                        ..default()
+                                    }),
+                                )
+                                .insert(PlayButtonActions::CubeScramble)
                                 .insert(Interaction::None);
                         });
                 }); // root node
@@ -420,14 +597,22 @@ fn clean_up(
 }
 
 fn button_system(
-    mut interaction_query: Query<(&Interaction,), (Changed<Interaction>, With<PlayButtonActions>)>,
+    mut interaction_query: Query<(&Interaction, &PlayButtonActions), (Changed<Interaction>,)>,
     mut game_state: ResMut<State<GameState>>,
+    current_cube: Res<CurrentCube>,
+    mut move_queue: ResMut<MoveQueue>,
 ) {
-    for (interaction,) in &mut interaction_query {
+    for (interaction, button) in &mut interaction_query {
         if *interaction == Interaction::Clicked {
-            match PlayButtonActions::BackToMenu {
+            match *button {
                 PlayButtonActions::BackToMenu => {
                     game_state.set(GameState::Menu).unwrap();
+                }
+                PlayButtonActions::CubeScramble => {
+                    let mut cmds: VecDeque<Move> =
+                        random_scramble(current_cube.cube_size as CubeSize).into();
+                    info!("Cube Scramble {:?}", cmds);
+                    move_queue.moves.append(&mut cmds);
                 }
             }
         }

@@ -1,10 +1,13 @@
-use crate::generic_cube::{Move, MoveVariant, CubeSize};
-use crate::generic_cube::Move::*;
-use crate::generic_cube::MoveVariant::*;
+use crate::generic_cube::{CubeSize, Move, Move::*, MoveVariant, MoveVariant::*};
+use rand::Rng;
 
 /// Converts a WCA Notation scramble into ``Vec<Move>``.
 pub fn parse_scramble(scramble: String) -> Vec<Move> {
-    scramble.trim().split_whitespace().map(convert_move).collect()
+    scramble
+        .trim()
+        .split_whitespace()
+        .map(convert_move)
+        .collect()
 }
 
 fn convert_move(mv: &str) -> Move {
@@ -22,8 +25,8 @@ fn convert_move(mv: &str) -> Move {
             "x" => X(variant),
             "y" => Y(variant),
             "z" => Z(variant),
-            _ => panic!()
-        }    
+            _ => panic!(),
+        }
     } else if mv.contains('U') {
         Uw(slice, variant)
     } else if mv.contains('R') {
@@ -79,7 +82,7 @@ fn get_variant(mv: &str) -> MoveVariant {
 /// let scramble = parse_scramble(String::from("B B2 B' R B2 B' R2 R' F2"));
 /// let simplified = simplify_moves(&scramble);
 /// assert_eq!(simplified, vec![B(Double), R(Standard), B(Standard), R(Standard), F(Double)]);
-/// 
+///
 /// let scramble = parse_scramble(String::from("R R' U2 F F' U2 x"));
 /// let simplified = simplify_moves(&scramble);
 /// assert_eq!(simplified, vec![X(Standard)]);
@@ -94,8 +97,14 @@ pub fn simplify_moves(moves: &[Move]) -> Vec<Move> {
     }
 
     // keep track of the current move and its amount of clockwise turns
-    struct Movement { pub mv: Move, pub total_turns: u8 }
-    let mut movement: Movement = Movement { mv: moves[0], total_turns: moves[0].get_variant() as u8};
+    struct Movement {
+        pub mv: Move,
+        pub total_turns: u8,
+    }
+    let mut movement: Movement = Movement {
+        mv: moves[0],
+        total_turns: moves[0].get_variant() as u8,
+    };
 
     // returns a Move if the simplified movement has any effect on a cube
     fn movement_to_move(m: Movement) -> Option<Move> {
@@ -112,13 +121,99 @@ pub fn simplify_moves(moves: &[Move]) -> Vec<Move> {
         if discriminant(&movement.mv) == discriminant(mv) {
             movement.total_turns = (movement.total_turns + mv.get_variant() as u8) % 4;
         } else {
-            if let Some(m) = movement_to_move(movement) { result.push(m) };
-            movement = Movement { mv: *mv, total_turns: mv.get_variant() as u8 };
+            if let Some(m) = movement_to_move(movement) {
+                result.push(m)
+            };
+            movement = Movement {
+                mv: *mv,
+                total_turns: mv.get_variant() as u8,
+            };
         }
     }
-    if let Some(m) = movement_to_move(movement) { result.push(m) };
+    if let Some(m) = movement_to_move(movement) {
+        result.push(m)
+    };
 
     // don't recurse if moves couldn't be simplified further
-    if result.len() == moves.len() { return result }
+    if result.len() == moves.len() {
+        return result;
+    }
     simplify_moves(result.as_slice())
+}
+
+pub fn random_scramble(cube_size: CubeSize) -> Vec<Move> {
+    let mut rng = rand::thread_rng();
+    let mut scramble = vec![];
+    let mut last_move = None;
+    let mut last_move_variant = None;
+    let mut last_move_slice = None;
+
+    for _ in 0..(cube_size * 20) {
+        let mut move_variant = Standard;
+        let mut move_slice = 1;
+        let mut move_type = rng.gen_range(0..=8);
+
+        // don't allow the same move twice in a row
+        if let Some(last_move) = last_move {
+            if move_type == last_move {
+                move_type = (move_type + 1) % 9;
+            }
+        }
+
+        // don't allow the same move variant twice in a row
+        if let Some(last_move_variant) = last_move_variant {
+            if rng.gen_bool(0.5) {
+                move_variant = last_move_variant;
+            }
+        }
+
+        // don't allow the same move slice twice in a row
+        if let Some(last_move_slice) = last_move_slice {
+            if rng.gen_bool(0.5) {
+                move_slice = last_move_slice;
+            }
+        }
+
+        // don't allow the same move slice twice in a row
+        if rng.gen_bool(0.5) {
+            move_slice = rng.gen_range(1..=cube_size);
+        }
+
+        let mv = match move_type {
+            0 => U(move_variant),
+            1 => R(move_variant),
+            2 => F(move_variant),
+            3 => L(move_variant),
+            4 => D(move_variant),
+            5 => B(move_variant),
+            6 => X(move_variant),
+            7 => Y(move_variant),
+            8 => Z(move_variant),
+            _ => panic!(),
+        };
+
+        let mv = match move_slice {
+            1 => mv,
+
+            _ => match mv {
+                U(variant) => Uw(move_slice, variant),
+                R(variant) => Rw(move_slice, variant),
+                F(variant) => Fw(move_slice, variant),
+                L(variant) => Lw(move_slice, variant),
+                D(variant) => Dw(move_slice, variant),
+                B(variant) => Bw(move_slice, variant),
+                X(variant) => X(variant),
+                Y(variant) => Y(variant),
+                Z(variant) => Z(variant),
+                _ => panic!(),
+            },
+        };
+
+        scramble.push(mv);
+        last_move = Some(move_type);
+        last_move_variant = Some(move_variant);
+        last_move_slice = Some(move_slice);
+    }
+
+    scramble
 }

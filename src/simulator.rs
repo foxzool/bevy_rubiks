@@ -1,7 +1,6 @@
 use crate::GameState;
 use bevy::prelude::*;
 use cubesim::{prelude::*, random_scramble, solve, FaceletCube, GeoCube};
-use float_eq::float_eq;
 use std::{
     collections::VecDeque,
     f32::consts::{FRAC_PI_2, PI},
@@ -173,7 +172,6 @@ fn cube_setup(
 #[derive(Resource, Default)]
 pub struct MoveQueue {
     moves: VecDeque<Move>,
-    rotating: bool,
 }
 
 impl Deref for MoveQueue {
@@ -203,21 +201,21 @@ fn rotate_control(
     mut move_queue: ResMut<MoveQueue>,
     mut current_cube: ResMut<CurrentCube>,
     q_not_rotating: Query<(Entity, &GlobalTransform), NotRotatingPiece>,
+    q_rotating: Query<&Rotating>,
 ) {
-    if move_queue.rotating {
+    if !q_rotating.is_empty() {
         return;
     }
     if let Some(move_) = move_queue.pop_front() {
         current_cube.geo_cube = current_cube.apply_move(move_);
         current_cube.moves.push(move_);
         debug!("move {}", move_);
-        move_queue.rotating = true;
         let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
         match move_ {
             Move::U(v) => {
                 let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().y, border, abs <= 0.001) {
+                    if transform.translation().y >= border - 0.01 {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Y,
                             angle: match v {
@@ -236,7 +234,7 @@ fn rotate_control(
             Move::L(v) => {
                 let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().x, -border, abs <= 0.001) {
+                    if transform.translation().x <= -border + 0.01 {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::X,
                             angle: match v {
@@ -254,7 +252,7 @@ fn rotate_control(
             Move::F(v) => {
                 let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().z, border, abs <= 0.001) {
+                    if transform.translation().z >= border - 0.01 {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Z,
                             angle: match v {
@@ -267,12 +265,12 @@ fn rotate_control(
                     }
                 }
 
-                trace!("F apply {count}");
+                debug!("F apply {count}");
             }
             Move::R(v) => {
                 let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().x, border, abs <= 0.001) {
+                    if transform.translation().x >= border - 0.01 {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::X,
                             angle: match v {
@@ -290,7 +288,7 @@ fn rotate_control(
             Move::B(v) => {
                 let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().z, -border, abs <= 0.001) {
+                    if transform.translation().z <= -border + 0.01 {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Z,
                             angle: match v {
@@ -307,7 +305,7 @@ fn rotate_control(
             Move::D(v) => {
                 let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().y, -border, abs <= 0.001) {
+                    if transform.translation().y <= -border + 0.01 {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Y,
                             angle: match v {
@@ -320,7 +318,7 @@ fn rotate_control(
                     }
                 }
 
-                trace!("D apply {count}");
+                debug!("D apply {count}");
             }
             Move::Uw(slice, v) => {
                 let mut count = 0;
@@ -486,15 +484,9 @@ fn rotate_control(
 
 fn rotate_piece(
     mut commands: Commands,
-    mut move_queue: ResMut<MoveQueue>,
     time: Res<Time>,
     mut q_rotating: Query<(Entity, &mut Transform, &mut Rotating), With<Piece>>,
 ) {
-    if q_rotating.is_empty() {
-        move_queue.rotating = false;
-        return;
-    }
-
     for (entity, mut transform, mut rotating) in q_rotating.iter_mut() {
         let mut rotate_angle = if rotating.angle > 0.0 {
             ROTATE_SPEED * PI * time.delta_seconds()
@@ -633,7 +625,6 @@ fn clean_up(
     mut move_queue: ResMut<MoveQueue>,
 ) {
     move_queue.moves.clear();
-    move_queue.rotating = false;
     for entity in q_ui.iter() {
         commands.entity(entity).despawn_recursive();
     }

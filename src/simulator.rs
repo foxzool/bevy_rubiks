@@ -1,5 +1,8 @@
 use crate::GameState;
-use bevy::prelude::*;
+use bevy::{
+    input::mouse::{MouseScrollUnit, MouseWheel},
+    prelude::*,
+};
 use cubesim::{prelude::*, random_scramble, solve, FaceletCube, GeoCube};
 use std::{
     collections::VecDeque,
@@ -16,6 +19,7 @@ impl Plugin for SimulatorPlugin {
             .add_system(rotate_control)
             .add_system(rotate_piece)
             .add_system(button_system)
+            .add_system(mouse_scroll)
             .add_system_set(
                 SystemSet::on_enter(GameState::Playing)
                     .with_system(cube_setup)
@@ -202,6 +206,7 @@ fn rotate_control(
     mut current_cube: ResMut<CurrentCube>,
     q_not_rotating: Query<(Entity, &GlobalTransform), NotRotatingPiece>,
     q_rotating: Query<&Rotating>,
+    mut q_text: Query<&mut Text, With<MovesText>>,
 ) {
     if !q_rotating.is_empty() {
         return;
@@ -209,6 +214,15 @@ fn rotate_control(
     if let Some(move_) = move_queue.pop_front() {
         current_cube.geo_cube = current_cube.apply_move(move_);
         current_cube.moves.push(move_);
+        let mut text = q_text.single_mut();
+
+        text.sections[0].value = current_cube
+            .moves
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<String>>()
+            .join(" ");
+
         debug!("move {}", move_);
         let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
         match move_ {
@@ -518,6 +532,9 @@ enum PlayButtonActions {
     CubeSolver,
 }
 
+#[derive(Component)]
+struct MovesText;
+
 fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
 
@@ -615,6 +632,68 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 .insert(Interaction::None);
                         });
                 }); // root node
+
+            // right vertical fill
+            parent
+                .spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Column,
+                        justify_content: JustifyContent::FlexStart,
+                        size: Size::new(Val::Px(200.0), Val::Percent(100.0)),
+                        ..default()
+                    },
+                    background_color: Color::rgb(0.15, 0.15, 0.15).into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    // Title
+                    parent.spawn(
+                        TextBundle::from_section(
+                            "Moves",
+                            TextStyle {
+                                font: font.clone(),
+                                font_size: 35.,
+                                color: Color::WHITE,
+                            },
+                        )
+                        .with_text_alignment(TextAlignment::CENTER)
+                        .with_style(Style {
+                            size: Size::new(Val::Undefined, Val::Px(25.)),
+                            margin: UiRect {
+                                left: Val::Auto,
+                                right: Val::Auto,
+                                ..default()
+                            },
+                            ..default()
+                        }),
+                    );
+
+                    parent
+                        .spawn(
+                            TextBundle::from_section(
+                                String::new(),
+                                TextStyle {
+                                    font: font.clone(),
+                                    font_size: 40.,
+                                    color: Color::WHITE,
+                                },
+                            )
+                            .with_text_alignment(TextAlignment::CENTER)
+                            .with_style(Style {
+                                position: UiRect {
+                                    top: Val::Px(5.0),
+                                    left: Val::Px(5.0),
+                                    ..default()
+                                },
+                                max_size: Size {
+                                    width: Val::Px(180.),
+                                    height: Val::Undefined,
+                                },
+                                ..default()
+                            }),
+                        )
+                        .insert(MovesText);
+                });
         });
 }
 
@@ -670,6 +749,35 @@ fn button_system(
                     }
                 }
             }
+        }
+    }
+}
+
+#[derive(Component, Default)]
+struct ScrollingList {
+    position: f32,
+}
+
+fn mouse_scroll(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    mut query_list: Query<(&mut ScrollingList, &mut Style, &Children, &Node)>,
+    query_item: Query<&Node>,
+) {
+    for mouse_wheel_event in mouse_wheel_events.iter() {
+        for (mut scrolling_list, mut style, children, uinode) in &mut query_list {
+            let items_height: f32 = children
+                .iter()
+                .map(|entity| query_item.get(*entity).unwrap().size().y)
+                .sum();
+            let panel_height = uinode.size().y;
+            let max_scroll = (items_height - panel_height).max(0.);
+            let dy = match mouse_wheel_event.unit {
+                MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
+                MouseScrollUnit::Pixel => mouse_wheel_event.y,
+            };
+            scrolling_list.position += dy;
+            scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
+            style.position.top = Val::Px(scrolling_list.position);
         }
     }
 }

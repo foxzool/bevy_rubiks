@@ -152,6 +152,10 @@ pub trait Cube: Clone + Eq + Hash + PartialEq {
 }
 
 use derive_more::Display;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 
 /// A face of a Rubik's Cube sticker represented in WCA notation.
 ///
@@ -354,6 +358,16 @@ pub enum MoveVariant {
     Double,
     /// A 90 degree counter-clockwise turn.
     Inverse,
+}
+
+impl Distribution<MoveVariant> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> MoveVariant {
+        match rng.gen_range(1..=3) {
+            1 => MoveVariant::Standard,
+            2 => MoveVariant::Double,
+            _ => MoveVariant::Inverse,
+        }
+    }
 }
 
 impl Display for MoveVariant {

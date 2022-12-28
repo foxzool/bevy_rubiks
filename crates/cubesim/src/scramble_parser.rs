@@ -145,7 +145,7 @@ pub fn random_scramble(cube_size: CubeSize, has_move_slice: bool) -> Vec<Move> {
     let mut last_move_slice = None;
 
     for _ in 0..(cube_size * 10) {
-        let mut move_variant = Standard;
+        let mut move_variant: MoveVariant = rand::random();
         let mut move_slice = 1;
         // not gen x y z
         let mut move_type = rng.gen_range(0..=5);
@@ -159,15 +159,19 @@ pub fn random_scramble(cube_size: CubeSize, has_move_slice: bool) -> Vec<Move> {
 
         // don't allow the same move variant twice in a row
         if let Some(last_move_variant) = last_move_variant {
-            if rng.gen_bool(0.5) {
-                move_variant = last_move_variant;
+            if move_variant == last_move_variant {
+                move_variant = match move_variant {
+                    Standard => Inverse,
+                    Inverse => Double,
+                    Double => Standard,
+                }
             }
         }
 
         // don't allow the same move slice twice in a row
         if let Some(last_move_slice) = last_move_slice {
-            if rng.gen_bool(0.5) {
-                move_slice = last_move_slice;
+            if move_slice == last_move_slice {
+                move_slice = (move_slice + 1) % cube_size;
             }
         }
 

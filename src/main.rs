@@ -8,7 +8,7 @@ use winit::window::Icon;
 
 fn main() {
     App::new()
-        .insert_resource(Msaa { samples: 1 })
+        // .insert_resource(Msaa { samples: 1 })
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 0.4)))
         .add_plugins(
             DefaultPlugins

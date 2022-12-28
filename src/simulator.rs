@@ -570,7 +570,7 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         },
                                     )
                                     .with_style(Style {
-                                        margin: UiRect::all(Val::Px(5.0)),
+                                        margin: UiRect::all(Val::Px(15.0)),
                                         ..default()
                                     }),
                                 )
@@ -589,7 +589,7 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         },
                                     )
                                     .with_style(Style {
-                                        margin: UiRect::all(Val::Px(5.0)),
+                                        margin: UiRect::all(Val::Px(15.0)),
                                         ..default()
                                     }),
                                 )
@@ -607,7 +607,7 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         },
                                     )
                                     .with_style(Style {
-                                        margin: UiRect::all(Val::Px(5.0)),
+                                        margin: UiRect::all(Val::Px(15.0)),
                                         ..default()
                                     }),
                                 )

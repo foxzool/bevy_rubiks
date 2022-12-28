@@ -1,6 +1,6 @@
 use crate::GameState;
 use bevy::prelude::*;
-use cubesim::{prelude::*, random_scramble, GeoCube};
+use cubesim::{prelude::*, random_scramble, solve, FaceletCube, GeoCube};
 use float_eq::float_eq;
 use std::{
     collections::VecDeque,
@@ -34,12 +34,13 @@ const LEFT_COLOR: Color = Color::ORANGE;
 const BACK_COLOR: Color = Color::BLUE;
 const PIECE_SIZE: f32 = 1.0;
 
-const ROTATE_SPEED: f32 = 1.0;
+const ROTATE_SPEED: f32 = 2.0;
 
 #[derive(Resource)]
 pub struct CurrentCube {
     geo_cube: GeoCube,
     cube_size: usize,
+    moves: Vec<Move>,
 }
 
 impl CurrentCube {
@@ -48,6 +49,7 @@ impl CurrentCube {
         Self {
             geo_cube,
             cube_size,
+            moves: vec![],
         }
     }
 }
@@ -71,14 +73,14 @@ struct Piece;
 
 fn cube_setup(
     mut commands: Commands,
-    current_cube: Res<CurrentCube>,
+    mut current_cube: ResMut<CurrentCube>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    info!("state {:?}", current_cube.state());
-
+    current_cube.geo_cube = GeoCube::new(current_cube.cube_size as CubeSize);
+    current_cube.moves = vec![];
     let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
-
+    info!("state {:?}", current_cube.state());
     for (i, faces) in current_cube
         .state()
         .chunks(current_cube.cube_size * current_cube.cube_size)
@@ -197,18 +199,21 @@ struct Rotating {
 fn rotate_control(
     mut commands: Commands,
     mut move_queue: ResMut<MoveQueue>,
-    current_cube: ResMut<CurrentCube>,
+    mut current_cube: ResMut<CurrentCube>,
     q_not_rotating: Query<(Entity, &GlobalTransform), (Without<Rotating>, With<Piece>)>,
 ) {
     if move_queue.rotating {
         return;
     }
     if let Some(move_) = move_queue.pop_front() {
-        current_cube.apply_move(move_);
+        current_cube.geo_cube = current_cube.apply_move(move_);
+        current_cube.moves.push(move_);
+        debug!("move {}", move_);
         move_queue.rotating = true;
         let border = (current_cube.cube_size as f32 * PIECE_SIZE) / 2.0 - 0.5 * PIECE_SIZE;
         match move_ {
             Move::U(v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
                     if float_eq!(transform.translation().y, border, abs <= 0.001) {
                         commands.entity(entity).insert(Rotating {
@@ -219,10 +224,15 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+
+                        count += 1;
                     }
                 }
+
+                trace!("U apply {count}");
             }
             Move::L(v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
                     if float_eq!(transform.translation().x, -border, abs <= 0.001) {
                         commands.entity(entity).insert(Rotating {
@@ -233,10 +243,14 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("L apply {count}");
             }
             Move::F(v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
                     if float_eq!(transform.translation().z, border, abs <= 0.001) {
                         commands.entity(entity).insert(Rotating {
@@ -247,10 +261,14 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("F apply {count}");
             }
             Move::R(v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
                     if float_eq!(transform.translation().x, border, abs <= 0.001) {
                         commands.entity(entity).insert(Rotating {
@@ -261,10 +279,14 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("R apply {count}");
             }
             Move::B(v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
                     if float_eq!(transform.translation().z, -border, abs <= 0.001) {
                         commands.entity(entity).insert(Rotating {
@@ -275,10 +297,13 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+                trace!("B apply {count}");
             }
             Move::D(v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
                     if float_eq!(transform.translation().y, -border, abs <= 0.001) {
                         commands.entity(entity).insert(Rotating {
@@ -289,17 +314,17 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("D apply {count}");
             }
             Move::Uw(slice, v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().y, border, abs <= 0.001)
-                        && float_eq!(
-                            transform.translation().x,
-                            (slice as f32 - 1.5) * PIECE_SIZE,
-                            abs <= 0.001
-                        )
+                    if (((border - slice as f32 / 2.0) - 0.001)..=(border + 0.001))
+                        .contains(&transform.translation().y)
                     {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Y,
@@ -309,17 +334,18 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+
+                        count += 1;
                     }
                 }
+
+                trace!("Uw apply {count}");
             }
             Move::Lw(slice, v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().x, -border, abs <= 0.001)
-                        && float_eq!(
-                            transform.translation().z,
-                            (slice as f32 - 1.5) * PIECE_SIZE,
-                            abs <= 0.001
-                        )
+                    if ((-border - 0.001)..=(border - (slice as f32 / 2.0) + 0.001))
+                        .contains(&transform.translation().x)
                     {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::X,
@@ -329,17 +355,17 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("Lw apply {count}");
             }
             Move::Fw(slice, v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().z, border, abs <= 0.001)
-                        && float_eq!(
-                            transform.translation().x,
-                            (slice as f32 - 1.5) * PIECE_SIZE,
-                            abs <= 0.001
-                        )
+                    if (((border - slice as f32 / 2.0) - 0.001)..=(border + 0.001))
+                        .contains(&transform.translation().z)
                     {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Z,
@@ -349,17 +375,17 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("Fw apply {count}");
             }
             Move::Rw(slice, v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().x, border, abs <= 0.001)
-                        && float_eq!(
-                            transform.translation().z,
-                            (slice as f32 - 1.5) * PIECE_SIZE,
-                            abs <= 0.001
-                        )
+                    if (((border - slice as f32 / 2.0) - 0.001)..=(border + 0.001))
+                        .contains(&transform.translation().x)
                     {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::X,
@@ -369,17 +395,18 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+
+                        count += 1;
                     }
                 }
+
+                trace!("Rw apply {count}");
             }
             Move::Bw(slice, v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().z, -border, abs <= 0.001)
-                        && float_eq!(
-                            transform.translation().x,
-                            (slice as f32 - 1.5) * PIECE_SIZE,
-                            abs <= 0.001
-                        )
+                    if ((-border - 0.001)..=((border - slice as f32 / 2.0) + 0.001))
+                        .contains(&transform.translation().z)
                     {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Z,
@@ -389,17 +416,17 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("Bw apply {count}");
             }
             Move::Dw(slice, v) => {
+                let mut count = 0;
                 for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().y, -border, abs <= 0.001)
-                        && float_eq!(
-                            transform.translation().z,
-                            (slice as f32 - 1.5) * PIECE_SIZE,
-                            abs <= 0.001
-                        )
+                    if ((-border - 0.001)..=((border - slice as f32 / 2.0) + 0.001))
+                        .contains(&transform.translation().y)
                     {
                         commands.entity(entity).insert(Rotating {
                             axis: Vec3::Y,
@@ -409,49 +436,46 @@ fn rotate_control(
                                 MoveVariant::Double => PI,
                             },
                         });
+                        count += 1;
                     }
                 }
+
+                trace!("Dw apply {count}");
             }
             Move::X(v) => {
-                for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().y, border, abs <= 0.001) {
-                        commands.entity(entity).insert(Rotating {
-                            axis: Vec3::Y,
-                            angle: match v {
-                                MoveVariant::Standard => -FRAC_PI_2,
-                                MoveVariant::Inverse => FRAC_PI_2,
-                                MoveVariant::Double => PI,
-                            },
-                        });
-                    }
+                for (entity, _transform) in q_not_rotating.iter() {
+                    commands.entity(entity).insert(Rotating {
+                        axis: Vec3::X,
+                        angle: match v {
+                            MoveVariant::Standard => -FRAC_PI_2,
+                            MoveVariant::Inverse => FRAC_PI_2,
+                            MoveVariant::Double => PI,
+                        },
+                    });
                 }
             }
             Move::Y(v) => {
-                for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().x, border, abs <= 0.001) {
-                        commands.entity(entity).insert(Rotating {
-                            axis: Vec3::X,
-                            angle: match v {
-                                MoveVariant::Standard => -FRAC_PI_2,
-                                MoveVariant::Inverse => FRAC_PI_2,
-                                MoveVariant::Double => PI,
-                            },
-                        });
-                    }
+                for (entity, _transform) in q_not_rotating.iter() {
+                    commands.entity(entity).insert(Rotating {
+                        axis: Vec3::Y,
+                        angle: match v {
+                            MoveVariant::Standard => -FRAC_PI_2,
+                            MoveVariant::Inverse => FRAC_PI_2,
+                            MoveVariant::Double => PI,
+                        },
+                    });
                 }
             }
             Move::Z(v) => {
-                for (entity, transform) in q_not_rotating.iter() {
-                    if float_eq!(transform.translation().z, border, abs <= 0.001) {
-                        commands.entity(entity).insert(Rotating {
-                            axis: Vec3::Z,
-                            angle: match v {
-                                MoveVariant::Standard => -FRAC_PI_2,
-                                MoveVariant::Inverse => FRAC_PI_2,
-                                MoveVariant::Double => PI,
-                            },
-                        });
-                    }
+                for (entity, _transform) in q_not_rotating.iter() {
+                    commands.entity(entity).insert(Rotating {
+                        axis: Vec3::Z,
+                        angle: match v {
+                            MoveVariant::Standard => -FRAC_PI_2,
+                            MoveVariant::Inverse => FRAC_PI_2,
+                            MoveVariant::Double => PI,
+                        },
+                    });
                 }
             }
         }
@@ -498,6 +522,7 @@ struct GameUiRoot;
 enum PlayButtonActions {
     BackToMenu,
     CubeScramble,
+    CubeSolver,
 }
 
 fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -565,7 +590,7 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     TextBundle::from_section(
                                         "Cube Scramble",
                                         TextStyle {
-                                            font,
+                                            font: font.clone(),
                                             font_size: 30.0,
                                             color: Color::WHITE,
                                         },
@@ -577,6 +602,24 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 )
                                 .insert(PlayButtonActions::CubeScramble)
                                 .insert(Interaction::None);
+
+                            parent
+                                .spawn(
+                                    TextBundle::from_section(
+                                        "Apply solver",
+                                        TextStyle {
+                                            font: font.clone(),
+                                            font_size: 30.0,
+                                            color: Color::WHITE,
+                                        },
+                                    )
+                                    .with_style(Style {
+                                        margin: UiRect::all(Val::Px(5.0)),
+                                        ..default()
+                                    }),
+                                )
+                                .insert(PlayButtonActions::CubeSolver)
+                                .insert(Interaction::None);
                         });
                 }); // root node
         });
@@ -586,7 +629,10 @@ fn clean_up(
     mut commands: Commands,
     q_ui: Query<Entity, With<GameUiRoot>>,
     q_piece: Query<Entity, With<Piece>>,
+    mut move_queue: ResMut<MoveQueue>,
 ) {
+    move_queue.moves.clear();
+    move_queue.rotating = false;
     for entity in q_ui.iter() {
         commands.entity(entity).despawn_recursive();
     }
@@ -610,9 +656,26 @@ fn button_system(
                 }
                 PlayButtonActions::CubeScramble => {
                     let mut cmds: VecDeque<Move> =
-                        random_scramble(current_cube.cube_size as CubeSize).into();
-                    info!("Cube Scramble {:?}", cmds);
+                        random_scramble(current_cube.cube_size as CubeSize, false).into();
+
                     move_queue.moves.append(&mut cmds);
+                }
+                PlayButtonActions::CubeSolver => {
+                    let cube = FaceletCube::new(current_cube.cube_size as CubeSize)
+                        .apply_moves(&current_cube.moves);
+                    let solution = solve(&cube);
+
+                    if let Some(s) = solution {
+                        let mut solution = String::new();
+                        for m in s.iter() {
+                            solution.push_str(&m.to_string());
+                            solution.push(' ');
+                            move_queue.moves.push_back(*m);
+                        }
+                        info!("Solution {}", solution);
+                    } else {
+                        warn!("Facelet Cube {:?} no solver", cube.state());
+                    }
                 }
             }
         }

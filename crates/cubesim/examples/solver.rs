@@ -1,14 +1,10 @@
-use cubesim::{parse_scramble, solve, Cube, FaceletCube, GeoCube};
+use cubesim::{parse_scramble, solve, Cube, FaceletCube};
 
 fn main() {
-    let cube = &GeoCube::new(3);
-
+    let moves = parse_scramble(String::from("Lw"));
+    println!("moves {:?}", moves);
+    let cube = &FaceletCube::new(3).apply_moves(&moves);
     println!("{:?}", cube.state());
-
-    let cube = &FaceletCube::new(3).apply_moves(&parse_scramble(String::from(
-        "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2",
-    )));
-
     let solution = solve(cube);
 
     if let Some(s) = solution {

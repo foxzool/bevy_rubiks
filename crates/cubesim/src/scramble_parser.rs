@@ -141,22 +141,23 @@ pub fn simplify_moves(moves: &[Move]) -> Vec<Move> {
     simplify_moves(result.as_slice())
 }
 
-pub fn random_scramble(cube_size: CubeSize) -> Vec<Move> {
+pub fn random_scramble(cube_size: CubeSize, has_move_slice: bool) -> Vec<Move> {
     let mut rng = rand::thread_rng();
     let mut scramble = vec![];
     let mut last_move = None;
     let mut last_move_variant = None;
     let mut last_move_slice = None;
 
-    for _ in 0..(cube_size * 20) {
+    for _ in 0..(cube_size * 10) {
         let mut move_variant = Standard;
         let mut move_slice = 1;
-        let mut move_type = rng.gen_range(0..=8);
+        // not gen x y z
+        let mut move_type = rng.gen_range(0..=5);
 
         // don't allow the same move twice in a row
         if let Some(last_move) = last_move {
             if move_type == last_move {
-                move_type = (move_type + 1) % 9;
+                move_type = (move_type + 1) % 6;
             }
         }
 
@@ -176,7 +177,7 @@ pub fn random_scramble(cube_size: CubeSize) -> Vec<Move> {
 
         // don't allow the same move slice twice in a row
         if rng.gen_bool(0.5) {
-            move_slice = rng.gen_range(1..=cube_size);
+            move_slice = rng.gen_range(1..cube_size);
         }
 
         let mv = match move_type {
@@ -192,21 +193,25 @@ pub fn random_scramble(cube_size: CubeSize) -> Vec<Move> {
             _ => panic!(),
         };
 
-        let mv = match move_slice {
-            1 => mv,
+        let mv = if has_move_slice {
+            match move_slice {
+                1 => mv,
 
-            _ => match mv {
-                U(variant) => Uw(move_slice, variant),
-                R(variant) => Rw(move_slice, variant),
-                F(variant) => Fw(move_slice, variant),
-                L(variant) => Lw(move_slice, variant),
-                D(variant) => Dw(move_slice, variant),
-                B(variant) => Bw(move_slice, variant),
-                X(variant) => X(variant),
-                Y(variant) => Y(variant),
-                Z(variant) => Z(variant),
-                _ => panic!(),
-            },
+                _ => match mv {
+                    U(variant) => Uw(move_slice, variant),
+                    R(variant) => Rw(move_slice, variant),
+                    F(variant) => Fw(move_slice, variant),
+                    L(variant) => Lw(move_slice, variant),
+                    D(variant) => Dw(move_slice, variant),
+                    B(variant) => Bw(move_slice, variant),
+                    X(variant) => X(variant),
+                    Y(variant) => Y(variant),
+                    Z(variant) => Z(variant),
+                    _ => panic!(),
+                },
+            }
+        } else {
+            mv
         };
 
         scramble.push(mv);

@@ -1,4 +1,7 @@
-use std::hash::Hash;
+use std::{
+    fmt::{Display, Formatter},
+    hash::Hash,
+};
 
 pub type CubeSize = i32;
 
@@ -59,28 +62,28 @@ pub trait Cube: Clone + Eq + Hash + PartialEq {
     /// Replaces each piece of the cube according to the given mapping function.
     /// This is useful for defining custom solvers by replacing certain pieces
     /// in order to reduce the search space.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// Cross Mask
-    /// 
+    ///
     /// ```rust
     /// use cubesim::prelude::{Cube, Face::*, Move, MoveVariant};
     /// use cubesim::FaceletCube;
     /// use cubesim::sticker_index;
-    /// 
+    ///
     /// let cross_pieces = [
     ///     sticker_index(3, D, 2), sticker_index(3, D, 4),
     ///     sticker_index(3, D, 6), sticker_index(3, D, 8),
     /// ];
-    /// 
+    ///
     /// let masked_cube = FaceletCube::new(3).mask(&|i, f| if cross_pieces.contains(&i) { f } else { X });
     /// assert_eq!(masked_cube.state(), vec![
-    ///      X, X, X, X, X, X, X, X, X, 
-    ///      X, X, X, X, X, X, X, X, X, 
-    ///      X, X, X, X, X, X, X, X, X, 
-    ///      X, D, X, D, X, D, X, D, X, 
-    ///      X, X, X, X, X, X, X, X, X, 
+    ///      X, X, X, X, X, X, X, X, X,
+    ///      X, X, X, X, X, X, X, X, X,
+    ///      X, X, X, X, X, X, X, X, X,
+    ///      X, D, X, D, X, D, X, D, X,
+    ///      X, X, X, X, X, X, X, X, X,
     ///      X, X, X, X, X, X, X, X, X
     /// ]);
     /// ```
@@ -177,20 +180,20 @@ pub enum Face {
 pub const ORDERED_FACES: [Face; 6] = [Face::U, Face::R, Face::F, Face::D, Face::L, Face::B];
 
 /// Get the index of a specific piece on a specific face.
-/// 
+///
 /// # Examples
-/// 
+///
 /// 1st piece on the front face of a 3x3x3 cube:
-/// 
+///
 /// ```rust
 /// use cubesim::prelude::{Cube, Face};
 /// use cubesim::sticker_index;
-/// 
+///
 /// assert_eq!(sticker_index(3, Face::F, 1), 18);
 /// ```
 pub fn sticker_index(size: CubeSize, face: Face, index: CubeSize) -> CubeSize {
-    (ORDERED_FACES.iter().position(|&f| f == face).unwrap() as CubeSize) 
-            * size * size + index - 1 as CubeSize
+    (ORDERED_FACES.iter().position(|&f| f == face).unwrap() as CubeSize) * size * size + index
+        - 1 as CubeSize
 }
 
 /// A move of a NxNxN Rubik's Cube represented in WCA notation.
@@ -277,6 +280,68 @@ impl Move {
             Move::Z(_) => Move::Z(variant),
         }
     }
+
+    fn get_move_name(&self) -> String {
+        match self {
+            Move::U(_) => "U".to_string(),
+            Move::L(_) => "L".to_string(),
+            Move::F(_) => "F".to_string(),
+            Move::R(_) => "R".to_string(),
+            Move::B(_) => "B".to_string(),
+            Move::D(_) => "D".to_string(),
+            Move::Uw(n, _) => {
+                if *n == 2 {
+                    "Uw".to_string()
+                } else {
+                    format!("{n}Uw")
+                }
+            }
+            Move::Lw(n, _) => {
+                if *n == 2 {
+                    "Lw".to_string()
+                } else {
+                    format!("{n}Lw")
+                }
+            }
+            Move::Fw(n, _) => {
+                if *n == 2 {
+                    "Fw".to_string()
+                } else {
+                    format!("{n}Fw")
+                }
+            }
+            Move::Rw(n, _) => {
+                if *n == 2 {
+                    "Rw".to_string()
+                } else {
+                    format!("{n}Rw")
+                }
+            }
+            Move::Bw(n, _) => {
+                if *n == 2 {
+                    "Bw".to_string()
+                } else {
+                    format!("{n}Bw")
+                }
+            }
+            Move::Dw(n, _) => {
+                if *n == 2 {
+                    "Dw".to_string()
+                } else {
+                    format!("{n}Dw")
+                }
+            }
+            Move::X(_) => "X".to_string(),
+            Move::Y(_) => "Y".to_string(),
+            Move::Z(_) => "Z".to_string(),
+        }
+    }
+}
+
+impl Display for Move {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.get_move_name(), self.get_variant())
+    }
 }
 
 /// A move variation that must be applied to the ```Move``` struct.
@@ -289,6 +354,17 @@ pub enum MoveVariant {
     Double,
     /// A 90 degree counter-clockwise turn.
     Inverse,
+}
+
+impl Display for MoveVariant {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            MoveVariant::Standard => "",
+            MoveVariant::Double => "2",
+            MoveVariant::Inverse => "'",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 /// Get the solved state for a cube of a given size.

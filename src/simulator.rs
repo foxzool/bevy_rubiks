@@ -16,16 +16,12 @@ impl Plugin for SimulatorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CurrentCube::new(3))
             .init_resource::<MoveQueue>()
-            .add_system(rotate_control)
-            .add_system(rotate_piece)
-            .add_system(button_system)
-            .add_system(mouse_scroll)
-            .add_system_set(
-                SystemSet::on_enter(GameState::Playing)
-                    .with_system(cube_setup)
-                    .with_system(game_ui),
+            .add_systems(
+                Update,
+                (rotate_control, rotate_piece, button_system, mouse_scroll),
             )
-            .add_system_set(SystemSet::on_exit(GameState::Playing).with_system(clean_up));
+            .add_systems(OnEnter(GameState::Playing), (cube_setup, game_ui))
+            .add_systems(OnExit(GameState::Playing), clean_up);
     }
 }
 
@@ -156,9 +152,7 @@ fn cube_setup(
                     .insert(Piece)
                     .with_children(|parent| {
                         parent.spawn(PbrBundle {
-                            mesh: meshes.add(Mesh::from(shape::Plane {
-                                size: PIECE_SIZE * 0.9,
-                            })),
+                            mesh: meshes.add(Mesh::from(shape::Plane::from_size(PIECE_SIZE * 0.9))),
                             material: materials.add(StandardMaterial {
                                 base_color: color,
                                 unlit: true,
@@ -542,7 +536,8 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
                 justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
@@ -554,7 +549,8 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
             parent
                 .spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(Val::Px(200.0), Val::Percent(100.0)),
+                        width: Val::Px(200.),
+                        height: Val::Px(100.),
                         border: UiRect::all(Val::Px(2.0)),
                         ..default()
                     },
@@ -566,7 +562,8 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                     parent
                         .spawn(NodeBundle {
                             style: Style {
-                                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                                width: Val::Percent(100.),
+                                height: Val::Percent(100.),
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::Center,
                                 ..default()
@@ -639,7 +636,8 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                     style: Style {
                         flex_direction: FlexDirection::Column,
                         justify_content: JustifyContent::FlexStart,
-                        size: Size::new(Val::Px(200.0), Val::Percent(100.0)),
+                        width: Val::Px(200.0),
+                        height: Val::Percent(100.0),
                         ..default()
                     },
                     background_color: Color::rgb(0.15, 0.15, 0.15).into(),
@@ -656,9 +654,9 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 color: Color::WHITE,
                             },
                         )
-                        .with_text_alignment(TextAlignment::CENTER)
+                        .with_text_alignment(TextAlignment::Center)
                         .with_style(Style {
-                            size: Size::new(Val::Undefined, Val::Px(25.)),
+                            height: Val::Px(25.),
                             margin: UiRect {
                                 left: Val::Auto,
                                 right: Val::Auto,
@@ -678,17 +676,12 @@ fn game_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     color: Color::WHITE,
                                 },
                             )
-                            .with_text_alignment(TextAlignment::CENTER)
+                            .with_text_alignment(TextAlignment::Center)
                             .with_style(Style {
-                                position: UiRect {
-                                    top: Val::Px(5.0),
-                                    left: Val::Px(5.0),
-                                    ..default()
-                                },
-                                max_size: Size {
-                                    width: Val::Px(180.),
-                                    height: Val::Undefined,
-                                },
+                                top: Val::Px(5.0),
+                                left: Val::Px(5.0),
+                                max_width: Val::Px(180.0),
+
                                 ..default()
                             }),
                         )
@@ -715,15 +708,15 @@ fn clean_up(
 
 fn button_system(
     mut interaction_query: Query<(&Interaction, &PlayButtonActions), (Changed<Interaction>,)>,
-    mut game_state: ResMut<State<GameState>>,
+    mut game_state: ResMut<NextState<GameState>>,
     current_cube: Res<CurrentCube>,
     mut move_queue: ResMut<MoveQueue>,
 ) {
     for (interaction, button) in &mut interaction_query {
-        if *interaction == Interaction::Clicked {
+        if *interaction == Interaction::Pressed {
             match *button {
                 PlayButtonActions::BackToMenu => {
-                    game_state.set(GameState::Menu).unwrap();
+                    game_state.set(GameState::Menu);
                 }
                 PlayButtonActions::CubeScramble => {
                     let mut cmds: VecDeque<Move> =
@@ -763,13 +756,13 @@ fn mouse_scroll(
     mut query_list: Query<(&mut ScrollingList, &mut Style, &Children, &Node)>,
     query_item: Query<&Node>,
 ) {
-    for mouse_wheel_event in mouse_wheel_events.iter() {
-        for (mut scrolling_list, mut style, children, uinode) in &mut query_list {
+    for mouse_wheel_event in mouse_wheel_events.read() {
+        for (mut scrolling_list, mut style, children, ui_node) in &mut query_list {
             let items_height: f32 = children
                 .iter()
                 .map(|entity| query_item.get(*entity).unwrap().size().y)
                 .sum();
-            let panel_height = uinode.size().y;
+            let panel_height = ui_node.size().y;
             let max_scroll = (items_height - panel_height).max(0.);
             let dy = match mouse_wheel_event.unit {
                 MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
@@ -777,7 +770,7 @@ fn mouse_scroll(
             };
             scrolling_list.position += dy;
             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
-            style.position.top = Val::Px(scrolling_list.position);
+            style.top = Val::Px(scrolling_list.position);
         }
     }
 }

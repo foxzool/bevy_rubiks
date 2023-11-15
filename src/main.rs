@@ -1,7 +1,13 @@
 // disable console on windows for release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use bevy::{log::LogPlugin, prelude::*, window::WindowId, winit::WinitWindows, DefaultPlugins};
+use bevy::{
+    log::LogPlugin,
+    prelude::*,
+    window::{PrimaryWindow, WindowResolution},
+    winit::WinitWindows,
+    DefaultPlugins,
+};
 use bevy_rubiks::RubiksPlugin;
 use std::io::Cursor;
 use winit::window::Icon;
@@ -13,13 +19,13 @@ fn main() {
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
-                    window: WindowDescriptor {
-                        width: 1280.,
-                        height: 720.,
+                    primary_window: Some(Window {
+                        resolution: WindowResolution::new(1280.0, 720.0)
+                            .with_scale_factor_override(1.0),
                         title: "Bevy Rubik's cube".to_string(),
                         canvas: Some("#bevy".to_owned()),
                         ..Default::default()
-                    },
+                    }),
                     ..default()
                 })
                 .set(LogPlugin {
@@ -29,14 +35,18 @@ fn main() {
                     filter: "wgpu=warn,bevy_ecs=info,naga=warn".to_string(),
                 }),
         )
-        .add_plugin(RubiksPlugin)
-        .add_startup_system(set_window_icon)
+        .add_plugins(RubiksPlugin)
+        .add_systems(Startup, set_window_icon)
         .run();
 }
 
 // Sets the icon on windows and X11
-fn set_window_icon(windows: NonSend<WinitWindows>) {
-    let primary = windows.get_window(WindowId::primary()).unwrap();
+fn set_window_icon(
+    windows: NonSend<WinitWindows>,
+    primary_window: Query<Entity, With<PrimaryWindow>>,
+) {
+    let primary_entity = primary_window.single();
+    let primary = windows.get_window(primary_entity).unwrap();
     let icon_buf = Cursor::new(include_bytes!(
         "../build/macos/AppIcon.iconset/icon_256x256.png"
     ));

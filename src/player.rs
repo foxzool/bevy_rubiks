@@ -6,8 +6,8 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_camera)
-            .add_system(keyboard_input_system);
+        app.add_systems(Startup, spawn_camera)
+            .add_systems(Update, keyboard_input_system);
     }
 }
 
@@ -19,7 +19,7 @@ fn spawn_camera(mut commands: Commands) {
 }
 
 fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: ResMut<MoveQueue>) {
-    let move_variant = if keyboard_input.pressed(KeyCode::LShift) {
+    let move_variant = if keyboard_input.pressed(KeyCode::ShiftLeft) {
         MoveVariant::Inverse
     } else if keyboard_input.pressed(KeyCode::Key2) {
         MoveVariant::Double
@@ -28,7 +28,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     };
 
     if keyboard_input.just_pressed(KeyCode::F) {
-        if keyboard_input.pressed(KeyCode::LControl) {
+        if keyboard_input.pressed(KeyCode::ControlLeft) {
             move_queue.push_back(Move::Fw(2, move_variant));
         } else {
             move_queue.push_back(Move::F(move_variant));
@@ -36,7 +36,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::B) {
-        if keyboard_input.pressed(KeyCode::LControl) {
+        if keyboard_input.pressed(KeyCode::ControlLeft) {
             move_queue.push_back(Move::Bw(2, move_variant));
         } else {
             move_queue.push_back(Move::B(move_variant));
@@ -44,7 +44,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::L) {
-        if keyboard_input.pressed(KeyCode::LControl) {
+        if keyboard_input.pressed(KeyCode::ControlLeft) {
             move_queue.push_back(Move::Lw(2, move_variant));
         } else {
             move_queue.push_back(Move::L(move_variant));
@@ -52,7 +52,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::R) {
-        if keyboard_input.pressed(KeyCode::LControl) {
+        if keyboard_input.pressed(KeyCode::ControlLeft) {
             move_queue.push_back(Move::Rw(2, move_variant));
         } else {
             move_queue.push_back(Move::R(move_variant));
@@ -60,7 +60,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::U) {
-        if keyboard_input.pressed(KeyCode::LControl) {
+        if keyboard_input.pressed(KeyCode::ControlLeft) {
             move_queue.push_back(Move::Uw(2, move_variant));
         } else {
             move_queue.push_back(Move::U(move_variant));
@@ -68,7 +68,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::D) {
-        if keyboard_input.pressed(KeyCode::LControl) {
+        if keyboard_input.pressed(KeyCode::ControlLeft) {
             move_queue.push_back(Move::Dw(2, move_variant));
         } else {
             move_queue.push_back(Move::D(move_variant));
@@ -76,7 +76,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::X) {
-        if keyboard_input.pressed(KeyCode::LShift) {
+        if keyboard_input.pressed(KeyCode::ShiftLeft) {
             move_queue.push_back(Move::X(MoveVariant::Inverse));
         } else {
             move_queue.push_back(Move::X(MoveVariant::Standard));
@@ -84,7 +84,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::Y) {
-        if keyboard_input.pressed(KeyCode::LShift) {
+        if keyboard_input.pressed(KeyCode::ShiftLeft) {
             move_queue.push_back(Move::Y(MoveVariant::Inverse));
         } else {
             move_queue.push_back(Move::Y(MoveVariant::Standard));
@@ -92,7 +92,7 @@ fn keyboard_input_system(keyboard_input: Res<Input<KeyCode>>, mut move_queue: Re
     }
 
     if keyboard_input.just_pressed(KeyCode::Z) {
-        if keyboard_input.pressed(KeyCode::LShift) {
+        if keyboard_input.pressed(KeyCode::ShiftLeft) {
             move_queue.push_back(Move::Z(MoveVariant::Inverse));
         } else {
             move_queue.push_back(Move::Z(MoveVariant::Standard));
